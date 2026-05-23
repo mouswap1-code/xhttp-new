@@ -15,3 +15,8 @@ routes:
     "http://{default}/":
         type: redirect
         to: "https://{default}/"
+
+resources:
+    router:
+        cpu: 0.5
+        memory: 1024
