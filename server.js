@@ -1,37 +1,51 @@
 const http = require('http');
 
 const UUID = 'acac847f-cfc1-4c7c-b7ac-9a1c8a8ca8e9';
+const VPS_IP = '188.213.28.174';
 const PORT = process.env.PORT || 8080;
+const DOMAIN = process.env.DOMAIN || 'main-bvxea6i-yg5fdvxqyxcbu.fr-3.platformsh.site';
 
 const server = http.createServer((req, res) => {
     const url = req.url;
     
-    // En-têtes de cache pour toutes les réponses
     const cacheHeaders = {
         'Cache-Control': 'public, max-age=60',
-        'Expires': new Date(Date.now() + 60000).toUTCString()
+        'Content-Type': 'text/plain'
     };
     
     if (url === '/') {
-        res.writeHead(200, { 'Content-Type': 'text/plain', ...cacheHeaders });
+        res.writeHead(200, cacheHeaders);
         res.end('Serveur XHTTP OK\n');
         return;
     }
     
-    if (url === `/${UUID}` || url === '/config') {
-        const domain = req.headers.host || 'xhttp-new.upsun.app';
-        const vlessLink = `vless://${UUID}@${domain}:443?type=xhttp&encryption=none&path=/&host=${domain}&mode=auto&x_padding_bytes=100-1000&security=tls#XHTTP-New`;
-        // Pas de cache pour le lien VLESS (même en-têtes)
-        res.writeHead(200, { 'Content-Type': 'text/plain', ...cacheHeaders });
+    if (url === `/${UUID}`) {
+        const vlessLink = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=/&host=${DOMAIN}&mode=auto&x_padding_bytes=100-1000&security=tls#XHTTP-New`;
+        res.writeHead(200, cacheHeaders);
         res.end(vlessLink + '\n');
         return;
     }
     
-    res.writeHead(404);
+    if (url === '/config') {
+        const vlessLink = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=/&host=${DOMAIN}&mode=auto&x_padding_bytes=100-1000&security=tls#XHTTP-New`;
+        res.writeHead(200, cacheHeaders);
+        res.end(vlessLink + '\n');
+        return;
+    }
+    
+    if (url === `/${VPS_IP}`) {
+        const vlessLink = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=/&host=${DOMAIN}&mode=auto&x_padding_bytes=100-1000&security=tls#XHTTP-New`;
+        res.writeHead(200, cacheHeaders);
+        res.end(vlessLink + '\n');
+        return;
+    }
+    
+    res.writeHead(404, cacheHeaders);
     res.end('Not Found\n');
 });
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Serveur actif sur le port ${PORT}`);
-    console.log(`🔗 /config`);
+    console.log(`🔗 https://${DOMAIN}/config`);
+    console.log(`🔗 https://${DOMAIN}/${VPS_IP}`);
 });
