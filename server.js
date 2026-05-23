@@ -6,8 +6,14 @@ const PORT = process.env.PORT || 8080;
 const server = http.createServer((req, res) => {
     const url = req.url;
     
+    // En-têtes de cache pour toutes les réponses
+    const cacheHeaders = {
+        'Cache-Control': 'public, max-age=60',
+        'Expires': new Date(Date.now() + 60000).toUTCString()
+    };
+    
     if (url === '/') {
-        res.writeHead(200);
+        res.writeHead(200, { 'Content-Type': 'text/plain', ...cacheHeaders });
         res.end('Serveur XHTTP OK\n');
         return;
     }
@@ -15,7 +21,8 @@ const server = http.createServer((req, res) => {
     if (url === `/${UUID}` || url === '/config') {
         const domain = req.headers.host || 'xhttp-new.upsun.app';
         const vlessLink = `vless://${UUID}@${domain}:443?type=xhttp&encryption=none&path=/&host=${domain}&mode=auto&x_padding_bytes=100-1000&security=tls#XHTTP-New`;
-        res.writeHead(200);
+        // Pas de cache pour le lien VLESS (même en-têtes)
+        res.writeHead(200, { 'Content-Type': 'text/plain', ...cacheHeaders });
         res.end(vlessLink + '\n');
         return;
     }
