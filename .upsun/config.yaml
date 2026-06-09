@@ -1,11 +1,14 @@
 applications:
   app:
     type: nodejs:20
+    web:
+      commands:
+        start: node server.js
 
 routes:
-  https://{default}/:
-    type: proxy
-    to: http://13.140.152.18:80
-  http://{default}/:
+  "https://{default}/":
+    type: upstream
+    upstream: "app:http"
+  "http://{default}/":
     type: redirect
-    to: https://{default}/
+    to: "https://{default}/"
