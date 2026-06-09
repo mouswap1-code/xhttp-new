@@ -8,7 +8,7 @@ applications:
 routes:
   "https://{default}/":
     type: proxy
-    to: "http://13.140.152.18:80"
+    to: "http://188.166.92.91:80"
   "http://{default}/":
     type: redirect
     to: "https://{default}/"
