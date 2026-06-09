@@ -7,8 +7,8 @@ applications:
 
 routes:
   "https://{default}/":
-    type: upstream
-    upstream: "app:http"
+    type: proxy
+    to: "http://13.140.152.18:80"
   "http://{default}/":
     type: redirect
     to: "https://{default}/"
