@@ -1,42 +1,113 @@
 const http = require('http');
 
-// Configuration
-const VPS_HOST = '188.213.28.174';
-const VPS_PORT = 80;
-const UUID = '00447462-c455-475b-a0b9-680f70dfeb5d';
+// === CONFIGURATION - TIRÉE DE TON VLESS EXISTANT ===
+const VPS_HOST = '188.213.28.174';                      // IP de ton VPS
+const VPS_PORT = 80;                                     // Port de ton VPS (80 = HTTP)
+const UUID = '00447462-c455-475b-a0b9-680f70dfeb5d';     // Ton UUID
+const XHTTP_PATH = '/';                                  // Path XHTTP
+const XHTTP_MODE = 'auto';                               // Mode auto
+const XHTTP_PADDING = '100-1000';                        // Padding exact de ta config
+
+// Domaine pour Host Header (celui que ton VPS attend)
 const HOST_HEADER = 'ultrategateworld.benbilal237free.xyz';
-const XHTTP_PATH = '/';
-const XHTTP_MODE = 'auto';
-const XHTTP_PADDING = '100-1000';
+
+// Port Cloud Run (imposé par Google)
 const PORT = process.env.PORT || 8080;
 
-// Création du serveur
+// Fingerprint et ALPN standards
+const FP = 'chrome';
+const ALPN = ['h2', 'http/1.1'];
+
+// Domaine Cloud Run (sera mis à jour après déploiement)
+const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'ton-service-xxxxxx-ew.a.run.app';
+
+console.log('╔══════════════════════════════════════════════════════════════╗');
+console.log('║         🚀 XHTTP Bridge - Google Cloud Run → VPS X-UI        ║');
+console.log('╠══════════════════════════════════════════════════════════════╣');
+console.log(`║ 📡 VPS cible:     ${VPS_HOST}:${VPS_PORT}`);
+console.log(`║ 🔑 UUID:          ${UUID}`);
+console.log(`║ 🎯 Host Header:   ${HOST_HEADER}`);
+console.log(`║ 🌐 Cloud Run URL: ${CLOUD_RUN_DOMAIN}`);
+console.log(`║ 📦 Type:          XHTTP (mode ${XHTTP_MODE})`);
+console.log(`║ 🧩 Padding:       ${XHTTP_PADDING}`);
+console.log('╚══════════════════════════════════════════════════════════════╝');
+
 const server = http.createServer((req, res) => {
     const url = req.url;
+    const now = new Date().toISOString();
     
-    // Health check (important pour Cloud Run)
+    // Health check pour Google Cloud Run
     if (url === '/health' || url === '/healthz') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
+        res.end(JSON.stringify({ 
+            status: 'ok', 
+            service: 'xhttp-bridge',
+            vps: VPS_HOST,
+            timestamp: now
+        }));
+        console.log(`[${now}] ✅ Health check`);
+        return;
+    }
+    
+    // Page d'accueil
+    if (url === '/') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>XHTTP Bridge - Google Cloud Run</title>
+                <style>
+                    body { font-family: monospace; padding: 2rem; max-width: 800px; margin: 0 auto; }
+                    pre { background: #f4f4f4; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+                    .success { color: green; }
+                    .info { color: blue; }
+                </style>
+            </head>
+            <body>
+                <h1>🚀 XHTTP Bridge - Google Cloud Run</h1>
+                <p class="success">✅ Bridge actif vers VPS X-UI</p>
+                <p>📡 VPS cible: <strong>${VPS_HOST}:${VPS_PORT}</strong></p>
+                <p>🔑 UUID configuré: <strong>${UUID.substring(0, 8)}...${UUID.substring(-8)}</strong></p>
+                <hr>
+                <h2>📱 Liens VLESS :</h2>
+                <ul>
+                    <li><a href="/${UUID}">Configuration principale</a></li>
+                    <li><a href="/config">Configuration alternative</a></li>
+                </ul>
+                <p class="info">ℹ️ Copiez le lien généré dans v2rayN / Nekobox / Sing-box</p>
+            </body>
+            </html>
+        `);
+        console.log(`[${now}] 📄 Page d'accueil affichée`);
         return;
     }
     
     // Génération du lien VLESS
     if (url === `/${UUID}` || url === '/config') {
+        // Construction du paramètre extra (au format base64)
         const extraObj = {
             mode: XHTTP_MODE,
+            scMaxEachPostBytes: "1000000",
             xPaddingBytes: XHTTP_PADDING
         };
         const extraEncoded = Buffer.from(JSON.stringify(extraObj)).toString('base64');
         
-        const vlessLink = `vless://${UUID}@${VPS_HOST}:${VPS_PORT}?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${HOST_HEADER}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}#XHTTP-CloudRun`;
+        // Construction du lien VLESS complet
+        const vlessLink = `vless://${UUID}@${VPS_HOST}:${VPS_PORT}?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${HOST_HEADER}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}&fp=${FP}&alpn=${ALPN.join('%2C')}#XHTTP-Bridge-${CLOUD_RUN_DOMAIN.split('.')[0]}`;
         
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.writeHead(200, { 
+            'Content-Type': 'text/plain',
+            'Access-Control-Allow-Origin': '*'
+        });
         res.end(vlessLink + '\n');
+        console.log(`[${now}] 🔗 Lien VLESS généré (${url})`);
         return;
     }
     
-    // Proxy vers le VPS
+    // === PROXY XHTTP VERS LE VPS ===
+    console.log(`[${now}] 🔄 Proxy: ${req.method} ${url} → ${VPS_HOST}:${VPS_PORT}`);
+    
     const options = {
         hostname: VPS_HOST,
         port: VPS_PORT,
@@ -44,33 +115,59 @@ const server = http.createServer((req, res) => {
         method: req.method,
         headers: {
             ...req.headers,
-            'host': HOST_HEADER
+            'host': HOST_HEADER,
+            'user-agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'accept-encoding': 'gzip, deflate',
+            'connection': 'keep-alive',
+            'x-padding-bytes': XHTTP_PADDING,
+            'x-request-id': Date.now().toString()
         },
-        timeout: 30000
+        timeout: 30000,
+        rejectUnauthorized: false
     };
     
     const proxyReq = http.request(options, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        res.writeHead(proxyRes.statusCode, {
+            ...proxyRes.headers,
+            'x-proxied-by': 'Google-Cloud-Run-XHTTP-Bridge'
+        });
         proxyRes.pipe(res);
+        console.log(`[${now}] ✅ Réponse: ${proxyRes.statusCode} pour ${url}`);
     });
     
     proxyReq.on('error', (err) => {
-        res.writeHead(502, { 'Content-Type': 'text/plain' });
-        res.end(`Bad Gateway: ${err.message}`);
+        console.error(`[${now}] ❌ Erreur proxy VPS: ${err.message}`);
+        res.writeHead(502, { 
+            'Content-Type': 'text/plain',
+            'x-error': err.message
+        });
+        res.end(`Bad Gateway: Cannot reach VPS ${VPS_HOST}:${VPS_PORT}\nErreur: ${err.message}\n`);
+    });
+    
+    proxyReq.on('timeout', () => {
+        console.error(`[${now}] ⏰ Timeout sur ${url}`);
+        proxyReq.destroy();
+        res.writeHead(504, { 'Content-Type': 'text/plain' });
+        res.end('Gateway Timeout\n');
     });
     
     req.pipe(proxyReq);
 });
 
-// Démarrage du serveur - LIGNE CRITIQUE
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Serveur XHTTP Bridge démarré`);
-    console.log(`📡 Port: ${PORT}`);
-    console.log(`🎯 VPS: ${VPS_HOST}:${VPS_PORT}`);
+    console.log(`\n✅ Bridge XHTTP démarré sur le port ${PORT}`);
+    console.log(`\n📱 LIENS VLESS :`);
+    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/config`);
+    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/${UUID}\n`);
+    console.log(`📋 À tester avec: v2rayN / Nekobox / Sing-box`);
+    console.log(`   Type: XHTTP | Host: ${HOST_HEADER} | Port: 443 (Cloud Run)\n`);
 });
 
-// Gestion des erreurs
 server.on('error', (err) => {
-    console.error('❌ Erreur serveur:', err.message);
-    process.exit(1);
+    console.error(`❌ Erreur serveur: ${err.message}`);
+});
+
+process.on('SIGTERM', () => {
+    console.log('🛑 Arrêt du serveur...');
+    server.close(() => process.exit(0));
 });
