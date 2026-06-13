@@ -19,7 +19,8 @@ const FP = 'chrome';
 const ALPN = ['h2', 'http/1.1'];
 
 // Domaine Cloud Run (sera mis à jour après déploiement)
-const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'ton-service-xxxxxx-ew.a.run.app';
+const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'xhttp-new-461610000741.europe-west1.run.app
+';
 
 console.log('╔══════════════════════════════════════════════════════════════╗');
 console.log('║         🚀 XHTTP Bridge - Google Cloud Run → VPS X-UI        ║');
