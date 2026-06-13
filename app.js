@@ -14,7 +14,8 @@ const ALPN = ['h2', 'http/1.1'];
 const PORT = process.env.PORT || 8080;
 
 // Récupérer l'URL Cloud Run
-const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'xhttp-nep-887031598630.us-central1.run.app';
+const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'xhttp-new-646064729527.us-central1.run.app
+';
 
 console.log('╔══════════════════════════════════════════════════════════════╗');
 console.log('║         🚀 XHTTP Bridge - Google Cloud Run → VPS X-UI        ║');
