@@ -1,13 +1,10 @@
 {
-  "name": "xhttp-bridge",
+  "name": "xhttp-bridge-gcr",
   "version": "1.0.0",
   "description": "XHTTP Bridge for Google Cloud Run",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
-  },
-  "dependencies": {
-    "ws": "^8.14.2"
   },
   "engines": {
     "node": ">=18"
