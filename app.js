@@ -19,7 +19,19 @@ const FP = 'chrome';
 const ALPN = ['h2', 'http/1.1'];
 
 // Domaine Cloud Run (sera mis à jour après déploiement)
-const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'ton-service-xxxxxx-ew.a.run.app';
+const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'xhttp-nep-646064729527.us-central1.run.app';
+
+// Fonction pour générer le lien VLESS (ajoutée)
+function generateVlessLink(host) {
+    const extraObj = {
+        mode: XHTTP_MODE,
+        scMaxEachPostBytes: "1000000",
+        xPaddingBytes: XHTTP_PADDING
+    };
+    const extraEncoded = Buffer.from(JSON.stringify(extraObj)).toString('base64');
+    
+    return `vless://${UUID}@${host}:${VPS_PORT}?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${HOST_HEADER}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}&fp=${FP}&alpn=${ALPN.join('%2C')}#XHTTP-Bridge-${CLOUD_RUN_DOMAIN.split('.')[0]}`;
+}
 
 console.log('╔══════════════════════════════════════════════════════════════╗');
 console.log('║         🚀 XHTTP Bridge - Google Cloud Run → VPS X-UI        ║');
@@ -74,6 +86,7 @@ const server = http.createServer((req, res) => {
                 <ul>
                     <li><a href="/${UUID}">Configuration principale</a></li>
                     <li><a href="/config">Configuration alternative</a></li>
+                    <li><a href="/${VPS_HOST}">Lien avec IP du VPS</a></li>
                 </ul>
                 <p class="info">ℹ️ Copiez le lien généré dans v2rayN / Nekobox / Sing-box</p>
             </body>
@@ -83,19 +96,23 @@ const server = http.createServer((req, res) => {
         return;
     }
     
+    // NOUVEAU: Route pour /IP (ex: /188.213.28.174)
+    const ipMatch = url.match(/^\/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+    if (ipMatch) {
+        const ip = ipMatch[1];
+        const vlessLink = generateVlessLink(ip);
+        res.writeHead(200, { 
+            'Content-Type': 'text/plain',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end(vlessLink + '\n');
+        console.log(`[${now}] 🔗 Lien VLESS généré pour IP: ${ip}`);
+        return;
+    }
+    
     // Génération du lien VLESS
     if (url === `/${UUID}` || url === '/config') {
-        // Construction du paramètre extra (au format base64)
-        const extraObj = {
-            mode: XHTTP_MODE,
-            scMaxEachPostBytes: "1000000",
-            xPaddingBytes: XHTTP_PADDING
-        };
-        const extraEncoded = Buffer.from(JSON.stringify(extraObj)).toString('base64');
-        
-        // Construction du lien VLESS complet
-        const vlessLink = `vless://${UUID}@${VPS_HOST}:${VPS_PORT}?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${HOST_HEADER}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}&fp=${FP}&alpn=${ALPN.join('%2C')}#XHTTP-Bridge-${CLOUD_RUN_DOMAIN.split('.')[0]}`;
-        
+        const vlessLink = generateVlessLink(VPS_HOST);
         res.writeHead(200, { 
             'Content-Type': 'text/plain',
             'Access-Control-Allow-Origin': '*'
@@ -158,7 +175,8 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n✅ Bridge XHTTP démarré sur le port ${PORT}`);
     console.log(`\n📱 LIENS VLESS :`);
     console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/config`);
-    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/${UUID}\n`);
+    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/${UUID}`);
+    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/${VPS_HOST} (IP uniquement)\n`);
     console.log(`📋 À tester avec: v2rayN / Nekobox / Sing-box`);
     console.log(`   Type: XHTTP | Host: ${HOST_HEADER} | Port: 443 (Cloud Run)\n`);
 });
