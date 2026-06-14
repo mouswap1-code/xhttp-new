@@ -19,7 +19,7 @@ const FP = 'chrome';
 const ALPN = ['h2', 'http/1.1'];
 
 // Domaine Cloud Run (sera mis à jour après déploiement)
-const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'xhttp-new-433600518362.us-central1.run.app';
+const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'xhttp-new-75480392594.us-central1.run.app';
 
 // Fonction pour générer le lien VLESS (ajoutée)
 function generateVlessLink(host) {
