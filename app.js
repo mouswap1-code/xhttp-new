@@ -1,35 +1,29 @@
 const http = require('http');
 
-// === CONFIGURATION - TIRÉE DE TON VLESS EXISTANT ===
+// === CONFIGURATION ===
 const VPS_HOST = '188.213.28.174';                      // IP de ton VPS
-const VPS_PORT = 80;                                     // Port de ton VPS (80 = HTTP)
-const UUID = '00447462-c455-475b-a0b9-680f70dfeb5d';     // Ton UUID
-const XHTTP_PATH = '/';                                  // Path XHTTP
-const XHTTP_MODE = 'auto';                               // Mode auto
-const XHTTP_PADDING = '100-1000';                        // Padding exact de ta config
-
-// Domaine pour Host Header (celui que ton VPS attend)
+const VPS_PORT = 80;                                    // Port HTTP du VPS
+const UUID = '00447462-c455-475b-a0b9-680f70dfeb5d';    // Ton UUID
+const XHTTP_PATH = '/';
+const XHTTP_MODE = 'auto';
+const XHTTP_PADDING = '100-1000';
 const HOST_HEADER = 'ultrategateworld.benbilal237free.xyz';
-
-// Port Cloud Run (imposé par Google)
 const PORT = process.env.PORT || 8080;
-
-// Fingerprint et ALPN standards
 const FP = 'chrome';
 const ALPN = ['h2', 'http/1.1'];
 
-// Domaine Cloud Run (sera mis à jour après déploiement)
-const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'moustapha-824656167733.us-central1.run.app
-';
+// ⚠️ CORRECTION : suppression du \n en fin de chaîne
+const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'moustapha-824656167733.us-central1.run.app';
 
-// Fonction pour générer le lien VLESS (ajoutée)
+// === GÉNÉRATEUR DE LIEN VLESS ===
 function generateVlessLink(host) {
     const extraObj = {
         mode: XHTTP_MODE,
         scMaxEachPostBytes: "1000000",
         xPaddingBytes: XHTTP_PADDING
     };
-    const extraEncoded = Buffer.from(JSON.stringify(extraObj)).toString('base64');
+    // Encodage URL-safe de l'objet extra
+    const extraEncoded = encodeURIComponent(JSON.stringify(extraObj));
     
     return `vless://${UUID}@${host}:${VPS_PORT}?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${HOST_HEADER}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}&fp=${FP}&alpn=${ALPN.join('%2C')}#XHTTP-Bridge-${CLOUD_RUN_DOMAIN.split('.')[0]}`;
 }
@@ -49,7 +43,7 @@ const server = http.createServer((req, res) => {
     const url = req.url;
     const now = new Date().toISOString();
     
-    // Health check pour Google Cloud Run
+    // Health check
     if (url === '/health' || url === '/healthz') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
@@ -81,13 +75,13 @@ const server = http.createServer((req, res) => {
                 <h1>🚀 XHTTP Bridge - Google Cloud Run</h1>
                 <p class="success">✅ Bridge actif vers VPS X-UI</p>
                 <p>📡 VPS cible: <strong>${VPS_HOST}:${VPS_PORT}</strong></p>
-                <p>🔑 UUID configuré: <strong>${UUID.substring(0, 8)}...${UUID.substring(-8)}</strong></p>
+                <p>🔑 UUID configuré: <strong>${UUID.substring(0, 8)}...${UUID.substring(UUID.length - 8)}</strong></p>
                 <hr>
                 <h2>📱 Liens VLESS :</h2>
                 <ul>
                     <li><a href="/${UUID}">Configuration principale</a></li>
                     <li><a href="/config">Configuration alternative</a></li>
-                    <li><a href="/${VPS_HOST}">Lien avec IP du VPS</a></li>
+                    <li><a href="/${VPS_HOST}">🔥 Lien avec IP du VPS</a></li>
                 </ul>
                 <p class="info">ℹ️ Copiez le lien généré dans v2rayN / Nekobox / Sing-box</p>
             </body>
@@ -97,7 +91,7 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // NOUVEAU: Route pour /IP (ex: /188.213.28.174)
+    // ✅ ROUTE POUR IP (ex: /188.213.28.174)
     const ipMatch = url.match(/^\/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
     if (ipMatch) {
         const ip = ipMatch[1];
@@ -111,7 +105,7 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // Génération du lien VLESS
+    // Route UUID et /config
     if (url === `/${UUID}` || url === '/config') {
         const vlessLink = generateVlessLink(VPS_HOST);
         res.writeHead(200, { 
