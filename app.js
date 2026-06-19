@@ -12,29 +12,23 @@ const PORT = process.env.PORT || 8080;
 const FP = 'chrome';
 const ALPN = ['h2', 'http/1.1'];
 
-// ⚠️ CORRECTION : suppression du \n en fin de chaîne
-const CLOUD_RUN_DOMAIN = process.env.CLOUD_RUN_DOMAIN || 'moustapha-824656167733.us-central1.run.app';
-
 // === GÉNÉRATEUR DE LIEN VLESS ===
-function generateVlessLink(host) {
+function generateVlessLink(upsunDomain, hostHeader) {
     const extraObj = {
         mode: XHTTP_MODE,
         scMaxEachPostBytes: "1000000",
         xPaddingBytes: XHTTP_PADDING
     };
-    // Encodage URL-safe de l'objet extra
     const extraEncoded = encodeURIComponent(JSON.stringify(extraObj));
-    
-    return `vless://${UUID}@${host}:${VPS_PORT}?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${HOST_HEADER}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}&fp=${FP}&alpn=${ALPN.join('%2C')}#XHTTP-Bridge-${CLOUD_RUN_DOMAIN.split('.')[0]}`;
+    return `vless://${UUID}@${upsunDomain}:443?encryption=none&type=xhttp&path=${encodeURIComponent(XHTTP_PATH)}&host=${hostHeader}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=${extraEncoded}&fp=${FP}&alpn=${ALPN.join('%2C')}#XHTTP-Bridge-${upsunDomain.split('.')[0]}`;
 }
 
 console.log('╔══════════════════════════════════════════════════════════════╗');
-console.log('║         🚀 XHTTP Bridge - Google Cloud Run → VPS X-UI        ║');
+console.log('║         🚀 XHTTP Bridge - Upsun → VPS X-UI                  ║');
 console.log('╠══════════════════════════════════════════════════════════════╣');
 console.log(`║ 📡 VPS cible:     ${VPS_HOST}:${VPS_PORT}`);
 console.log(`║ 🔑 UUID:          ${UUID}`);
 console.log(`║ 🎯 Host Header:   ${HOST_HEADER}`);
-console.log(`║ 🌐 Cloud Run URL: ${CLOUD_RUN_DOMAIN}`);
 console.log(`║ 📦 Type:          XHTTP (mode ${XHTTP_MODE})`);
 console.log(`║ 🧩 Padding:       ${XHTTP_PADDING}`);
 console.log('╚══════════════════════════════════════════════════════════════╝');
@@ -42,6 +36,7 @@ console.log('╚═════════════════════�
 const server = http.createServer((req, res) => {
     const url = req.url;
     const now = new Date().toISOString();
+    const upsunDomain = req.headers.host || 'mon-projet.upsun.app';
     
     // Health check
     if (url === '/health' || url === '/healthz') {
@@ -63,7 +58,7 @@ const server = http.createServer((req, res) => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>XHTTP Bridge - Google Cloud Run</title>
+                <title>XHTTP Bridge - Upsun</title>
                 <style>
                     body { font-family: monospace; padding: 2rem; max-width: 800px; margin: 0 auto; }
                     pre { background: #f4f4f4; padding: 1rem; border-radius: 8px; overflow-x: auto; }
@@ -72,7 +67,7 @@ const server = http.createServer((req, res) => {
                 </style>
             </head>
             <body>
-                <h1>🚀 XHTTP Bridge - Google Cloud Run</h1>
+                <h1>🚀 XHTTP Bridge - Upsun</h1>
                 <p class="success">✅ Bridge actif vers VPS X-UI</p>
                 <p>📡 VPS cible: <strong>${VPS_HOST}:${VPS_PORT}</strong></p>
                 <p>🔑 UUID configuré: <strong>${UUID.substring(0, 8)}...${UUID.substring(UUID.length - 8)}</strong></p>
@@ -95,7 +90,7 @@ const server = http.createServer((req, res) => {
     const ipMatch = url.match(/^\/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
     if (ipMatch) {
         const ip = ipMatch[1];
-        const vlessLink = generateVlessLink(ip);
+        const vlessLink = generateVlessLink(upsunDomain, ip);
         res.writeHead(200, { 
             'Content-Type': 'text/plain',
             'Access-Control-Allow-Origin': '*'
@@ -107,7 +102,7 @@ const server = http.createServer((req, res) => {
     
     // Route UUID et /config
     if (url === `/${UUID}` || url === '/config') {
-        const vlessLink = generateVlessLink(VPS_HOST);
+        const vlessLink = generateVlessLink(upsunDomain, HOST_HEADER);
         res.writeHead(200, { 
             'Content-Type': 'text/plain',
             'Access-Control-Allow-Origin': '*'
@@ -141,7 +136,7 @@ const server = http.createServer((req, res) => {
     const proxyReq = http.request(options, (proxyRes) => {
         res.writeHead(proxyRes.statusCode, {
             ...proxyRes.headers,
-            'x-proxied-by': 'Google-Cloud-Run-XHTTP-Bridge'
+            'x-proxied-by': 'Upsun-XHTTP-Bridge'
         });
         proxyRes.pipe(res);
         console.log(`[${now}] ✅ Réponse: ${proxyRes.statusCode} pour ${url}`);
@@ -169,11 +164,11 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n✅ Bridge XHTTP démarré sur le port ${PORT}`);
     console.log(`\n📱 LIENS VLESS :`);
-    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/config`);
-    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/${UUID}`);
-    console.log(`   ➜ https://${CLOUD_RUN_DOMAIN}/${VPS_HOST} (IP uniquement)\n`);
+    console.log(`   ➜ https://${process.env.DOMAIN || 'mon-projet.upsun.app'}/config`);
+    console.log(`   ➜ https://${process.env.DOMAIN || 'mon-projet.upsun.app'}/${UUID}`);
+    console.log(`   ➜ https://${process.env.DOMAIN || 'mon-projet.upsun.app'}/${VPS_HOST} (IP uniquement)\n`);
     console.log(`📋 À tester avec: v2rayN / Nekobox / Sing-box`);
-    console.log(`   Type: XHTTP | Host: ${HOST_HEADER} | Port: 443 (Cloud Run)\n`);
+    console.log(`   Type: XHTTP | Host: ${HOST_HEADER} | Port: 443 (Upsun)\n`);
 });
 
 server.on('error', (err) => {
