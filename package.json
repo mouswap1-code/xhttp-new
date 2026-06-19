@@ -1,12 +1,7 @@
 {
-  "name": "xhttp-bridge-gcr",
+  "name": "xhttp-bridge-upsun",
   "version": "1.0.0",
-  "description": "XHTTP Bridge for Google Cloud Run",
-  "main": "app.js",
   "scripts": {
-    "start": "node app.js"
-  },
-  "engines": {
-    "node": ">=18"
+    "start": "node server.js"
   }
 }
